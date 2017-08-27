@@ -1,0 +1,8 @@
+[package]
+name = "med"
+version = "0.1.0"
+authors = ["Michael Maclean <michael@no-surprises.co.uk>"]
+
+[dependencies]
+libc = "0.2"
+termios = "0.2"
