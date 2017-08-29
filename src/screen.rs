@@ -82,6 +82,12 @@ impl Screen {
     }
 
     pub fn get_rows(&self) -> String {
+        if (self.width < WELCOME.len()) {
+            return (1..self.height)
+                .map({ |_| "~\r\n" })
+                .collect::<String>();
+        }
+
         let welcome_pos = self.height / 3;
         let remainder = self.height - welcome_pos - 1;
         let msg_start = (self.width - WELCOME.len()) / 2;
@@ -89,7 +95,6 @@ impl Screen {
         let first = (1..welcome_pos)
             .map({ |_| "~\r\n" })
             .collect::<String>();
-
 
         let padding = (1..msg_start)
             .map({ |_| " " })
