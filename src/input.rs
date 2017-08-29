@@ -12,7 +12,11 @@ pub struct Input {
 impl Input {
     pub fn new(fd: RawFd, stdin: Stdin) -> Input {
         let termios = Termios::from_fd(fd).unwrap();
-        Input { fd: fd, stdin: stdin, original_termios: termios }
+        Input {
+            fd: fd,
+            stdin: stdin,
+            original_termios: termios,
+        }
     }
 
     pub fn enable_raw(&mut self) {
@@ -31,13 +35,14 @@ impl Input {
     }
 
     pub fn disable_raw(&self) {
-        tcsetattr(self.fd, TCSAFLUSH, &self.original_termios).expect("Failed to restore terminal state");
+        tcsetattr(self.fd, TCSAFLUSH, &self.original_termios)
+            .expect("Failed to restore terminal state");
     }
 
     pub fn read_key(&self) -> u8 {
         match self.stdin.lock().bytes().next() {
             Some(c) => c.unwrap(),
-            None => 0
+            None => 0,
         }
     }
 }

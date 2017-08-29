@@ -4,6 +4,7 @@ version = "0.1.0"
 dependencies = [
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "termios 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "text_io 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -19,6 +20,12 @@ dependencies = [
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
+[[package]]
+name = "text_io"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
 [metadata]
 "checksum libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)" = "2370ca07ec338939e356443dac2296f581453c35fe1e3a3ed06023c49435f915"
 "checksum termios 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d5d9cf598a6d7ce700a4e6a9199da127e6819a61e64b68609683cc9a01b5683a"
+"checksum text_io 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "090d2ee73ae8f01646d500fbb72f99f0b2aea174b7b15d58359bbdf083f73e6d"

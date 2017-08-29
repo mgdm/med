@@ -6,3 +6,4 @@ authors = ["Michael Maclean <michael@no-surprises.co.uk>"]
 [dependencies]
 libc = "0.2"
 termios = "0.2"
+text_io = "0.1"
