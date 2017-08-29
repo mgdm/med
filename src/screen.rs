@@ -55,20 +55,17 @@ impl Screen {
 
         self.stdout.lock().write("\x1b[6n\r\n".as_bytes()).unwrap();
 
-        let mut size: usize = 0;
-        while size == 0 {
-            match self.stdin.lock().read_to_string(&mut buf) {
-                Ok(s) => {
-                    size = s;
-                }
-                _ => {}
-            };
-        }
-
         let (w, h): (isize, isize);
-        scan!(buf.bytes() => "\x1b[{};{}R", w, h);
-
-        Ok((w, h))
+        match self.stdin.lock().read_to_string(&mut buf) {
+            Ok(s) => {
+                scan!(buf.bytes() => "\x1b[{};{}R", w, h);
+                Ok((w, h))
+            },
+            _ => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Failed to get cursor position",
+                    )),
+        }
     }
 
     pub fn clear(&self) {

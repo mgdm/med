@@ -50,6 +50,8 @@ fn main() {
         .get_cursor_position()
         .expect("Failed to get cursor position");
 
+    print!("Position: ({}, {})\r\n", x, y);
+
     while !stop {
         screen.clear();
         screen.draw_rows();
