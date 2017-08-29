@@ -30,12 +30,6 @@ fn handle_char(c: u8) -> bool {
         return true;
     }
 
-    if is_ctrl(c) {
-        print!("{}\r\n", c);
-    } else {
-        print!("{} ({})\r\n", c, c as char);
-    }
-
     false
 }
 
@@ -53,8 +47,7 @@ fn main() {
     print!("Position: ({}, {})\r\n", x, y);
 
     while !stop {
-        screen.clear();
-        screen.draw_rows();
+        screen.refresh();
         let char = input.read_key();
         stop = handle_char(char);
     }

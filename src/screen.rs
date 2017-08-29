@@ -6,14 +6,22 @@ use libc::c_ushort;
 use libc::TIOCGWINSZ;
 use libc::STDOUT_FILENO;
 
-use std::str;
+static CLEAR_SCREEN: &'static str = "\x1b[2J\x1b[H";
+static CLEAR_LINE: &'static str = "\x1b[K";
 
+static POSITION_REPORT: &'static str = "\x1b[6n\r\n";
+
+static SHOW_CURSOR: &'static str = "\x1b[?25h";
+static HIDE_CURSOR: &'static str = "\x1b[?25l";
+
+static WELCOME: &'static str = "Welcome to med, version ";
+static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 pub struct Screen {
     stdin: Stdin,
     stdout: Stdout,
-    width: isize,
-    height: isize,
+    width: usize,
+    height: usize,
 }
 
 impl Screen {
@@ -31,7 +39,7 @@ impl Screen {
         }
     }
 
-    fn get_terminal_size() -> io::Result<(isize, isize)> {
+    fn get_terminal_size() -> io::Result<(usize, usize)> {
         let w = winsize {
             ws_row: 0,
             ws_col: 0,
@@ -42,7 +50,7 @@ impl Screen {
         let r = unsafe { ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) };
 
         match r {
-            0 => Ok((w.ws_col as isize, w.ws_row as isize)),
+            0 => Ok((w.ws_col as usize, w.ws_row as usize)),
             _ => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "Failed to get terminal size",
@@ -50,36 +58,65 @@ impl Screen {
         }
     }
 
-    pub fn get_cursor_position(&self) -> io::Result<(isize, isize)> {
+    pub fn get_cursor_position(&self) -> io::Result<(usize, usize)> {
         let mut buf = String::new();
 
-        self.stdout.lock().write("\x1b[6n\r\n".as_bytes()).unwrap();
+        self.write(POSITION_REPORT.as_bytes());
 
-        let (w, h): (isize, isize);
+        let (w, h): (usize, usize);
         match self.stdin.lock().read_to_string(&mut buf) {
             Ok(s) => {
                 scan!(buf.bytes() => "\x1b[{};{}R", w, h);
                 Ok((w, h))
             },
-            _ => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Failed to get cursor position",
-                    )),
+            _ => Err(
+                io::Error::new(
+                        io::ErrorKind::Other,
+                        "Failed to get cursor position",
+                    ))
         }
     }
 
     pub fn clear(&self) {
-        self.stdout
-            .lock()
-            .write("\x1b[2J\x1b[H".as_bytes())
-            .unwrap();
+        self.write(CLEAR_SCREEN.as_bytes())
     }
 
-    pub fn draw_rows(&self) {
-        let rows = (1..self.height - 5)
+    pub fn get_rows(&self) -> String {
+        let welcome_pos = self.height / 3;
+        let remainder = self.height - welcome_pos - 1;
+        let msg_start = (self.width - WELCOME.len()) / 2;
+
+        let first = (1..welcome_pos)
             .map({ |_| "~\r\n" })
             .collect::<String>();
-        self.stdout.lock().write(rows.as_bytes()).unwrap();
+
+
+        let padding = (1..msg_start)
+            .map({ |_| " " })
+            .collect::<String>();
+
+        let last = (welcome_pos..self.height)
+            .map({ |_| "~\r\n" })
+            .collect::<String>();
+
+        format!("{}{}{}{}{}{}", first.trim_right(), padding, WELCOME, VERSION, "\r\n", last)
+    }
+
+    pub fn show_cursor(&self) {
+        self.write(SHOW_CURSOR.as_bytes());
+    }
+
+    pub fn hide_cursor(&self) {
+        self.write(HIDE_CURSOR.as_bytes());
+    }
+
+    pub fn refresh(&self) {
+        let str = format!("{}{}{}{}", HIDE_CURSOR, CLEAR_SCREEN, self.get_rows(), SHOW_CURSOR);
+        self.write(str.as_bytes());
+    }
+
+    fn write(&self, bytes: &[u8]) {
+        self.stdout.lock().write(bytes).unwrap();
     }
 }
 
