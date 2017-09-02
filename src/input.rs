@@ -3,18 +3,20 @@ use std::io::Stdin;
 use std::os::unix::io::RawFd;
 use termios::*;
 
-pub struct Input {
+use stdio::Stdio;
+
+pub struct Input<'a> {
     fd: RawFd,
     original_termios: Termios,
-    stdin: Stdin,
+    stdio: &'a Stdio,
 }
 
-impl Input {
-    pub fn new(fd: RawFd, stdin: Stdin) -> Input {
+impl<'a> Input<'a> {
+    pub fn new(fd: RawFd, stdio: &'a Stdio) -> Input {
         let termios = Termios::from_fd(fd).unwrap();
         Input {
             fd: fd,
-            stdin: stdin,
+            stdio: stdio,
             original_termios: termios,
         }
     }
@@ -40,7 +42,7 @@ impl Input {
     }
 
     pub fn read_key(&self) -> u8 {
-        match self.stdin.lock().bytes().next() {
+        match self.stdio.stdin_lock().bytes().next() {
             Some(c) => c.unwrap(),
             None => 0,
         }

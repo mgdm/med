@@ -6,36 +6,38 @@ use libc::c_ushort;
 use libc::TIOCGWINSZ;
 use libc::STDOUT_FILENO;
 
+use stdio::Stdio;
+
 static CLEAR_SCREEN: &'static str = "\x1b[2J\x1b[H";
 static CLEAR_LINE: &'static str = "\x1b[K";
 
-static POSITION_REPORT: &'static str = "\x1b[6n\r\n";
-
-static SHOW_CURSOR: &'static str = "\x1b[?25h";
-static HIDE_CURSOR: &'static str = "\x1b[?25l";
+static ENTER_ALTERNATE_BUFFER: &'static str = "\x1b[?1049h\x1b[H";
+static EXIT_ALTERNATE_BUFFER: &'static str = "\x1b[?1049l";
 
 static WELCOME: &'static str = "Welcome to med, version ";
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-pub struct Screen {
-    stdin: Stdin,
-    stdout: Stdout,
+pub struct Screen<'a> {
+    stdio: &'a Stdio,
     width: usize,
     height: usize,
+    cursor_x: usize,
+    cursor_y: usize
 }
 
-impl Screen {
-    pub fn new(stdin: Stdin, stdout: Stdout) -> Screen {
+impl<'a> Screen<'a> {
+    pub fn new(stdio: &Stdio) -> Screen {
         let (width, height) = match Screen::get_terminal_size() {
             Ok(size) => size,
             _ => (0, 0),
         };
 
         Screen {
-            stdin: stdin,
-            stdout: stdout,
+            stdio: stdio,
             width: width,
             height: height,
+            cursor_x: 10,
+            cursor_y: 10
         }
     }
 
@@ -58,23 +60,12 @@ impl Screen {
         }
     }
 
-    pub fn get_cursor_position(&self) -> io::Result<(usize, usize)> {
-        let mut buf = String::new();
+    pub fn enter_alternate_buffer(&self) {
+        self.write(ENTER_ALTERNATE_BUFFER.as_bytes());
+    }
 
-        self.write(POSITION_REPORT.as_bytes());
-
-        let (w, h): (usize, usize);
-        match self.stdin.lock().read_to_string(&mut buf) {
-            Ok(s) => {
-                scan!(buf.bytes() => "\x1b[{};{}R", w, h);
-                Ok((w, h))
-            },
-            _ => Err(
-                io::Error::new(
-                        io::ErrorKind::Other,
-                        "Failed to get cursor position",
-                    ))
-        }
+    pub fn exit_alternate_buffer(&self) {
+        self.write(EXIT_ALTERNATE_BUFFER.as_bytes());
     }
 
     pub fn clear(&self) {
@@ -82,10 +73,12 @@ impl Screen {
     }
 
     pub fn get_rows(&self) -> String {
-        if (self.width < WELCOME.len()) {
-            return (1..self.height)
+        if self.width < WELCOME.len() {
+            let rows = (1..self.height)
                 .map({ |_| "~\r\n" })
                 .collect::<String>();
+
+            return String::from(rows.trim_right());
         }
 
         let welcome_pos = self.height / 3;
@@ -107,21 +100,13 @@ impl Screen {
         format!("{}{}{}{}{}{}", first.trim_right(), padding, WELCOME, VERSION, "\r\n", last)
     }
 
-    pub fn show_cursor(&self) {
-        self.write(SHOW_CURSOR.as_bytes());
-    }
-
-    pub fn hide_cursor(&self) {
-        self.write(HIDE_CURSOR.as_bytes());
-    }
-
     pub fn refresh(&self) {
-        let str = format!("{}{}{}{}", HIDE_CURSOR, CLEAR_SCREEN, self.get_rows(), SHOW_CURSOR);
+        let str = format!("{}{}", CLEAR_SCREEN, self.get_rows());
         self.write(str.as_bytes());
     }
 
     fn write(&self, bytes: &[u8]) {
-        self.stdout.lock().write(bytes).unwrap();
+        self.stdio.stdout_lock().write(bytes).unwrap();
     }
 }
 

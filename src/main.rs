@@ -1,16 +1,18 @@
 #[macro_use]
 extern crate text_io;
 
-
 extern crate libc;
 extern crate termios;
 
 mod input;
 mod screen;
+mod cursor;
+mod stdio;
 
 use std::io;
 use libc::iscntrl;
 
+use stdio::Stdio;
 use input::Input;
 use screen::Screen;
 
@@ -34,17 +36,13 @@ fn handle_char(c: u8) -> bool {
 }
 
 fn main() {
-    let mut input = Input::new(0, io::stdin());
-    let screen = Screen::new(io::stdin(), io::stdout());
+    let mut stdio = Stdio::new(io::stdin(), io::stdout());
+    let mut input = Input::new(0, &stdio);
+    let screen = Screen::new(&stdio);
     let mut stop = false;
 
+    screen.enter_alternate_buffer();
     input.enable_raw();
-
-    let (x, y) = screen
-        .get_cursor_position()
-        .expect("Failed to get cursor position");
-
-    print!("Position: ({}, {})\r\n", x, y);
 
     while !stop {
         screen.refresh();
@@ -53,4 +51,5 @@ fn main() {
     }
 
     input.disable_raw();
+    screen.exit_alternate_buffer();
 }
